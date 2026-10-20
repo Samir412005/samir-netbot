@@ -43,6 +43,7 @@ class MainActivity : Activity() {
                 } catch (_: Exception) { status.text="فشل الربط: راجع HTTPS والكود / Vérifiez HTTPS et le code" }
             }
         }
+        button("أضف عرضاً — تعليم الكود / Ajouter un code") { startActivity(Intent(this,LearnActivity::class.java)) }
         button("منح الصلاحيات واختيار SIM / Autorisations SIM") { permissions() }
         sims=Spinner(this); layout.addView(sims); loadSims()
         button("بدء الاتصال / Démarrer") {

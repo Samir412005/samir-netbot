@@ -36,6 +36,8 @@ class Device(Base):
 class Offer(Base):
     __tablename__ = 'offers'
     bid: Mapped[int] = mapped_column(primary_key=True)
+    owner_user_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    learn_key: Mapped[str | None] = mapped_column(String(160), unique=True, nullable=True)
     name: Mapped[str] = mapped_column(String(100))
     operator: Mapped[str] = mapped_column(String(50))
     size: Mapped[str] = mapped_column(String(50))

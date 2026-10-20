@@ -28,6 +28,7 @@ class BridgeClient(private val base: String, private val token: String = "", pri
         require(code.matches(Regex("[0-9]{6}")))
         return request("/device/register",JSONObject().put("code",code).put("name","Android companion")).getString("device_token")
     }
+    fun learn(name: String, operator: String, ussd: String, key: String): Int = request("/device/offers",JSONObject().put("name",name).put("operator",operator).put("ussd",ussd).put("idempotency_key",key).put("consent",true)).getInt("bid")
     fun poll(): PendingCommand? { val j=request("/device/commands"); return if(j.isNull("command")) null else PendingCommand.parse(j.getJSONObject("command")) }
     fun result(id: String, outcome: String, text: String): String = request("/device/result",JSONObject().put("command_id",id).put("outcome",outcome).put("response",text.take(4000))).getString("state")
 }

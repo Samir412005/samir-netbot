@@ -18,6 +18,7 @@ class BridgeService : Service() {
     override fun onBind(intent:Intent?)=null
     private fun client()=BridgeClient(prefs.getString("url","")!!,Vault(this).token())
     override fun onStartCommand(intent:Intent?,flags:Int,startId:Int):Int {
+        if(intent?.action=="stop") { stopSelf(); return START_NOT_STICKY }
         val nm=getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(NotificationChannel("bridge","Netbot companion",NotificationManager.IMPORTANCE_DEFAULT))
         startForeground(1,notification("الاتصال مفعّل — افتح لمراجعة أي عملية / Connexion active"))

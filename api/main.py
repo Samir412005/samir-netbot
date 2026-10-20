@@ -9,6 +9,8 @@ from pydantic import BaseModel, Field
 from core import service
 
 app = FastAPI(title='Samir Netbot device API')
+from api.learn import router as learn_router
+app.include_router(learn_router)
 attempts = defaultdict(deque)
 
 @app.middleware('http')

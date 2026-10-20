@@ -138,7 +138,7 @@ async def menu(m: Message):
             u=s.get(User,uid); count=s.scalar(select(func.count()).select_from(Device).where(Device.user_id==uid,Device.revoked==False))
         return await m.answer(tr(uid,f'نقاطك: {u.points}\nالأجهزة: {count}\nالنقاط ليست رصيد المشغل.',f'Points : {u.points}\nAppareils : {count}\nCe n’est pas le solde opérateur.'))
     if idx in (2,3):
-        with Session() as s: offers=s.scalars(select(Offer).where(Offer.enabled==True,Offer.category==('internet' if idx==2 else 'special'))).all()
+        with Session() as s: offers=s.scalars(select(Offer).where(Offer.enabled==True,or_(Offer.owner_user_id==None,Offer.owner_user_id==uid),Offer.category==('internet' if idx==2 else 'special'))).all()
         if not offers: return await m.answer(tr(uid,'لا توجد عروض رسمية مهيأة بعد. لا نستعمل أكواداً مجهولة.','Aucune offre officielle configurée. Pas de code inconnu.'))
         rows=[[InlineKeyboardButton(text=f'{o.name} | {o.operator} | {o.size} | {o.price_points} pts',callback_data=f'activate:{o.bid}')] for o in offers]
         return await m.answer(tr(uid,'اختار العرض. قد يخصم المشغل من رصيد الشريحة؛ راجع التكلفة وSIM والكود على الهاتف قبل الموافقة.','Choisissez. Des frais opérateur peuvent s’appliquer. Vérifiez tarif, SIM et code sur le téléphone.'),reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))

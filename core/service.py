@@ -131,7 +131,7 @@ def result(token, cid, outcome, response):
         reason = 'network_or_user_failure'
         if outcome == 'response':
             # A callback is NOT evidence of subscription activation. Match only an operator-reviewed confirmation.
-            state = 'success' if re.search(c.success_regex, text, re.I) else 'fail'
+            state = 'success' if c.success_regex and re.search(c.success_regex, text, re.I) else 'fail'
             reason = 'confirmed_by_configured_response' if state == 'success' else 'activation_not_confirmed_check_network_reply'
         n = s.execute(update(Command).where(Command.id == cid, Command.state == 'delivered', Command.expires_at > now()).values(state=state, response=text, reason=reason)).rowcount
         if n: audit(s, d.user_id, 'ussd_'+state)
