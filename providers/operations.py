@@ -27,7 +27,7 @@ class Operations:
     def activate(self, provider, user, msisdn, sku, now=None):
         now = time.time() if now is None else now
         bucket = int(now) // self.seconds
-        ref = 'sn-' + hashlib.sha256(f'{user}|{sku.id}|{bucket}'.encode()).hexdigest()[:24]
+        ref = 'sn-' + hashlib.sha256(f'{user}|{sku.id}|{bucket}'.encode()).hexdigest()[:24].translate(str.maketrans('0123456789abcdef','abcdefghijklmnop'))
         with self._db() as db:
             db.execute('BEGIN IMMEDIATE')
             old = db.execute('''SELECT result FROM activations WHERE user=? AND offer=? AND

@@ -50,6 +50,8 @@ class ProviderBot:
         chat = message.get('chat') or {}
         if not allowed(user,chat.get('id'),chat.get('type')):
             return
+        if self.provider.name == 'manual_otp':
+            return self.send('هذا المسار غير مفعّل')
         self.pending = {k:v for k,v in self.pending.items() if v[1]>time.time()}
         if callback:
             try:
