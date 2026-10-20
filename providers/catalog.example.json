@@ -1,0 +1,7 @@
+{
+  "demo": {
+    "name": "تجربة محلية فقط — ليس عرضاً حقيقياً",
+    "enabled": true,
+    "sku": {"id": "demo", "operator_id": 0, "amount": "1", "currency": "USD", "country": "DZ", "use_local_amount": false, "companion_bid": 0}
+  }
+}
