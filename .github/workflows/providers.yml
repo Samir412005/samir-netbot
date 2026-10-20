@@ -15,6 +15,7 @@ jobs:
           python-version: '3.12'
       - run: python -m compileall -q providers bot/provider_main.py bot/local_state.py
       - run: python scripts/provider_verification.py 2>&1 | tee provider-tests.txt
+        shell: bash
         env:
           PYTHONPATH: .
       - uses: actions/upload-artifact@v4
