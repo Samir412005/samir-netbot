@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -30,19 +30,24 @@ jobs:
           path: |
             app/build/reports/
             app/build/test-results/
-      - name: Prepare APK and checksum
+      - name: Verify signature, test counts and checksum
         run: |
           cp app/build/outputs/apk/debug/app-debug.apk samir-netbot-0.3.0-preview3.apk
           sha256sum samir-netbot-0.3.0-preview3.apk > SHA256SUMS.txt
+          SIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
+          "$SIGNER" verify --verbose --print-certs samir-netbot-0.3.0-preview3.apk | tee APK-SIGNATURE.txt
+          python3 scripts/verification.py
       - uses: actions/upload-artifact@v4
         with:
           name: samir-netbot-preview3
           path: |
             samir-netbot-0.3.0-preview3.apk
             SHA256SUMS.txt
+            VERIFICATION.json
+            APK-SIGNATURE.txt
       - name: Publish preview after successful tests and build
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release view preview-3 >/dev/null 2>&1 || gh release create preview-3 --target "$GITHUB_SHA" --prerelease --title 'Mobile-only 0.3.0-preview3' --notes 'Standalone Android bot. No hosting. Debug-signed APK. Unit tests, mock Telegram transport and Android lint passed. Real SIM/USSD and real Telegram-token verification still require a phone. See mobile-only README.'
-          gh release upload preview-3 samir-netbot-0.3.0-preview3.apk SHA256SUMS.txt --clobber
+          gh release upload preview-3 samir-netbot-0.3.0-preview3.apk SHA256SUMS.txt VERIFICATION.json APK-SIGNATURE.txt --clobber
