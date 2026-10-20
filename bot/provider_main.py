@@ -91,7 +91,7 @@ class ProviderBot:
                     return self.send('رقم المستفيد غير مضبوط محلياً. ما نطلبوش رقم ولا OTP في Telegram؛ لا شحن.')
                 result = self.ops.activate(self.provider,user,recipient,sku)
                 self.local.log('activation '+self.provider.name+' '+result.status)
-                local_ref = self.ops.history(user,1)[0]['request_ref']
+                local_ref = self.ops.reference(user,sku.id)
                 return self.send(f"المعرّف المحلي: {local_ref}\n{self.provider.name}: {result.status}\nالمرجع: {result.ref}\nالتكلفة المؤكدة: {result.cost if result.cost is not None else 'غير معروفة'} {result.currency or ''}\n{result.message}")
         text = message.get('text','')
         if text.startswith('/history'):

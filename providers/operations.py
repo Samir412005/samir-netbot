@@ -50,6 +50,11 @@ class Operations:
                 (result.status,result.cost,result.currency,json.dumps(asdict(result)),ref))
         return result
 
+    def reference(self, user, offer):
+        with self._db() as db:
+            row = db.execute('SELECT request_ref FROM activations WHERE user=? AND offer=? ORDER BY created DESC LIMIT 1',(user,offer)).fetchone()
+            return row['request_ref'] if row else None
+
     def history(self, user, limit=50):
         with self._db() as db:
             return [dict(row) for row in db.execute('SELECT * FROM activations WHERE user=? ORDER BY created DESC LIMIT ?', (user,min(limit,50)))]
