@@ -1,12 +1,6 @@
-.env
-.venv/
-__pycache__/
-.pytest_cache/
-*.db
-*.db-*
-*.jks
-*.keystore
-android/.gradle/
+.gradle/
 **/build/
 local.properties
-*.apk
+*.jks
+*.keystore
+.idea/
