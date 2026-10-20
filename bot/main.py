@@ -4,7 +4,7 @@ import re
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command as BotCommand, CommandStart
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from sqlalchemy.exc import IntegrityError
 from core.db import Session
 from core.models import User, Device, Offer, Command, Interest
@@ -13,6 +13,8 @@ from core import service
 AR = ['🎁 هدية يومية','💰 كم هو رصيدي','🌐 عروض الإنترنت','⚡ عروض خاصة','🌐 تفعيل تقنية 5G','👻 سناب شات']
 FR = ['🎁 Cadeau quotidien','💰 Mon solde','🌐 Offres Internet','⚡ Offres spéciales','🌐 Activer la 5G','👻 Snapchat']
 dp = Dispatcher()
+dp.message.filter(F.chat.type == 'private')
+dp.callback_query.filter(F.message.chat.type == 'private')
 admins = {int(x) for x in os.getenv('ADMIN_IDS','').split(',') if x.strip().isdigit()}
 def lang(uid):
     with Session() as s:
@@ -78,7 +80,7 @@ async def admin(m: Message):
     if m.chat.type != 'private' or m.from_user.id not in admins: return
     raw = m.text.split(maxsplit=1)
     if len(raw)==1:
-        return await m.answer('أوامر الإدارة:\n/admin add name|operator|size|price_points|internet أو special|USSD|success_regex\n/admin enable BID\n/admin disable BID\n/admin requests\n/admin ban TELEGRAM_ID\n/admin unban TELEGRAM_ID\nالعروض الجديدة معطلة افتراضياً. لا تفعل قبل التحقق من الكود الرسمي ونص النجاح والتكلفة.')
+        return await m.answer('أوامر الإدارة:\n/admin add name|operator|size|price_points|internet أو special|USSD|success_regex\n/admin enable BID\n/admin disable BID\n/admin code BID|USSD|confirmation_text\n/admin requests\n/admin ban TELEGRAM_ID\n/admin unban TELEGRAM_ID\nالعروض الجديدة معطلة افتراضياً. لا تفعل قبل التحقق من الكود الرسمي ونص النجاح والتكلفة.')
     action, _, args = raw[1].partition(' ')
     try:
         with Session.begin() as s:
@@ -91,6 +93,15 @@ async def admin(m: Message):
                 re.compile(regex)
                 o = Offer(name=name[:100],operator=operator[:50],size=size[:50],price_points=int(price),category=category,ussd=ussd,success_regex=regex,enabled=False)
                 s.add(o); s.flush(); reply=f'BID={o.bid}. Disabled. /admin enable {o.bid}'
+            elif action == 'code':
+                bid, ussd, regex = args.split('|')
+                if len(ussd)>160 or not re.fullmatch(r'[*#0-9]+#',ussd) or len(regex)>200 or not regex: raise ValueError('invalid code/confirmation')
+                if any(c in regex for c in '*+{}()\\'): raise ValueError('simple confirmation text only')
+                re.compile(regex)
+                o=s.get(Offer,int(bid))
+                if not o: raise ValueError('unknown offer')
+                o.ussd=ussd; o.success_regex=regex
+                reply='Updated for future requests only. /admin code BID|USSD|confirmation_text'
             elif action in ('enable','disable'):
                 o=s.get(Offer,int(args))
                 if not o: raise ValueError('unknown offer')
@@ -114,7 +125,7 @@ async def activate(q: CallbackQuery):
     if not ok(q.from_user.id): return await q.answer('Blocked',show_alert=True)
     bid=int(q.data.split(':')[1])
     try:
-        c=service.create_command(q.from_user.id,bid,None,'tg:'+q.id)
+        c=service.create_command(q.from_user.id,bid,None,f'tg:{q.message.chat.id}:{q.message.message_id}:{bid}')
         await q.message.answer(tr(q.from_user.id,f'تم إرسال طلب {c.offer_name}. وافق على الهاتف. الحالة: {c.state}\nلا تعاود الطلب عند المهلة قبل التأكد من المشغل.',f'Demande {c.offer_name}: {c.state}. Confirmez sur le téléphone. Ne réessayez pas après délai sans vérifier l’opérateur.'))
         await q.answer()
     except ValueError as e:

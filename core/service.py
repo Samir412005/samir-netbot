@@ -86,7 +86,9 @@ def create_command(uid, bid, device_id, key):
             if not d or d.user_id != uid or d.revoked: raise ValueError('no_linked_device')
             if d.last_seen < now() - int(os.getenv('ONLINE_SECONDS','60')): raise ValueError('device_offline')
             o = s.get(Offer, bid)
-            if not o or not o.enabled or not o.success_regex or 'PLACEHOLDER' in o.ussd: raise ValueError('offer_not_configured')
+            if not o or not o.enabled or 'PLACEHOLDER' in o.ussd: raise ValueError('offer_not_configured')
+            if o.owner_user_id is not None and o.owner_user_id != uid: raise ValueError('offer_not_configured')
+            if o.owner_user_id is None and not o.success_regex: raise ValueError('offer_not_configured')
             if s.scalar(select(Command.id).where(Command.device_id == d.id, Command.state.in_(('queued','delivered'))).limit(1)): raise ValueError('device_busy')
             if u.points < o.price_points: raise ValueError('insufficient_points')
             # Points are demo loyalty only; operator charges are separate and shown on the phone.
