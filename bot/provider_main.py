@@ -7,6 +7,7 @@ from pathlib import Path
 from providers import Operations, Sku, from_env
 from providers.base import sanitize
 from providers.http import Http
+from .local_state import LocalState, local_command
 
 OWNER = 8178411819
 
@@ -20,7 +21,11 @@ class ProviderBot:
         self.http = http or Http()
         self.provider = from_env()
         self.ops = Operations(os.getenv('PROVIDER_DB', 'provider-operations.sqlite3'), os.getenv('IDEMPOTENCY_WINDOW', 'day'))
-        self.offers = json.loads(Path(os.getenv('PROVIDER_CATALOG', 'providers/catalog.example.json')).read_text())
+        self.catalog_path = Path(os.getenv('PROVIDER_CATALOG', 'provider-catalog.local.json'))
+        if not self.catalog_path.exists():
+            self.catalog_path.write_text(Path('providers/catalog.example.json').read_text())
+        self.offers = json.loads(self.catalog_path.read_text())
+        self.local = LocalState(os.getenv('BOT_STATE_DB','provider-state.sqlite3'))
         self.recipients = json.loads(os.getenv('RECIPIENTS_JSON', '{}'))
         self.pending = {}
         self.offset_path = Path(os.getenv('PROVIDER_OFFSET', 'provider-offset.txt'))
@@ -49,6 +54,8 @@ class ProviderBot:
         user = ((callback or {}).get('from') or message.get('from') or {}).get('id')
         chat = message.get('chat') or {}
         if not allowed(user,chat.get('id'),chat.get('type')):
+            return
+        if not callback and local_command(self, message.get('text',''),user):
             return
         if self.provider.name == 'manual_otp':
             return self.send('هذا المسار غير مفعّل')
@@ -83,7 +90,9 @@ class ProviderBot:
                 if self.provider.name=='reloadly' and not recipient:
                     return self.send('رقم المستفيد غير مضبوط محلياً. ما نطلبوش رقم ولا OTP في Telegram؛ لا شحن.')
                 result = self.ops.activate(self.provider,user,recipient,sku)
-                return self.send(f"{self.provider.name}: {result.status}\nالمرجع: {result.ref}\nالتكلفة المؤكدة: {result.cost if result.cost is not None else 'غير معروفة'} {result.currency or ''}\n{result.message}")
+                self.local.log('activation '+self.provider.name+' '+result.status)
+                local_ref = self.ops.history(user,1)[0]['request_ref']
+                return self.send(f"المعرّف المحلي: {local_ref}\n{self.provider.name}: {result.status}\nالمرجع: {result.ref}\nالتكلفة المؤكدة: {result.cost if result.cost is not None else 'غير معروفة'} {result.currency or ''}\n{result.message}")
         text = message.get('text','')
         if text.startswith('/history'):
             rows = self.ops.history(user)

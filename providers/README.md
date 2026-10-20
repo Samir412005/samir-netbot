@@ -56,3 +56,13 @@ providers/companion.py يوصل إلى **الجسر القديم** core.service.
 python -m unittest tests.test_providers -v
 ```
 Mock HTTP لا يستعمل مفاتيح فعلية ولا يرسل شحناً. الاختبارات تتحقق من OAuth audience وطلب topups وrecipientPhone/customIdentifier، التنقيح، حالات النجاح/الفشل/timeout و5xx، منع LIVE افتراضياً، منع التكرار مع restart/concurrency/window وunknown، companion بدون جهاز لا يدعي النجاح، GET للمراجعة وwhitelist. [GitHub Actions](https://github.com/Samir412005/samir-netbot/actions/workflows/providers.yml) يشغلها ويحفظ provider-tests.txt. اختبارات Android وتقاريرها تبقى في فرع mobile-only وإصدار preview-3.
+
+
+## manual_otp ومسؤولية المستخدم
+`PROVIDER=manual_otp` مدعوم صراحةً لكن غير مفعّل؛ الافتراضي mock وauto لا يختاره. يظهر في البوت «هذا المسار غير مفعّل». الملف manual_otp.py واجهة فقط ترمي NotImplementedError؛ لا نجمع OTP ولا ننفذ جلسات أو واجهات مشغّل غير موثقة.
+العقد: activate(msisdn,sku) يعيد ActivationResult(ref,status,message,raw_sanitized,cost,currency). الحالات success/failed/pending/unknown؛ حجز SQLite قبل الإرسال، ومنع تكرار المستخدم+العرض ساعة/يوم، وتعليق unknown/pending دون إعادة تلقائية. السجلات قائمة سماح مقنعة بلا رقم/OTP/token/جلسة. [العقد التفصيلي وطريقة ربط وحدة المستخدم](MANUAL_CONTRACT.md).
+
+## البوت والإدارة
+المالك المسموح وحده: حساب Telegram المهيأ في الكود؛ خاص فقط. /start كتالوج ثم تأكيد مستقل لمدة دقيقتين؛ /points و/gift (10 كل 24 ساعة)؛ /admin و/offer KEY JSON و/enable KEY on|off لإدارة عروض الكتالوج المحلي؛ /history للتفعيل و/logs لآخر 50 حدثاً؛ /5g و/snap قريباً. العرض الجديد موقوف حتى تفعيله. تغيير الكتالوج يلغي التأكيدات المعلّقة. لا تحفظ أسراراً في أسماء العروض أو JSON.
+نقاط البوت محلية تجريبية؛ لا تخصم/تمول محفظة Reloadly ولا تمنح إنترنت مجانياً. قاعدة الحالة BOT_STATE_DB مستقلة عن PROVIDER_DB؛ احتفظ بالاثنتين. PROVIDER_CATALOG الافتراضي provider-catalog.local.json (ينسخ المثال أول تشغيل).
+اختبارات إضافية: python -m unittest discover -s tests -p 'test_provider*.py' -v ثم test_manual_otp.py.
